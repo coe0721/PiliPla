@@ -1,5 +1,4 @@
 import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
-import 'package:PiliPlus/models/common/search/search_filter_mode.dart';
 import 'package:PiliPlus/pages/setting/models/model.dart';
 import 'package:PiliPlus/utils/reply_quality_filter.dart';
 import 'package:PiliPlus/utils/search_quality_filter.dart';
@@ -13,35 +12,12 @@ import 'package:material_ui/material_ui.dart';
 List<SettingsModel> get qualitySettings => [
   SwitchModel(
     title: '启用搜索过滤',
-    subtitle: '完全本地判断，不额外请求视频详情；关闭后搜索结果保持原样',
+    subtitle: '完全本地判断，只淡化可疑结果、绝不隐藏；关闭后保持原样',
     leading: const Icon(Icons.manage_search_outlined),
     setKey: SettingBoxKey.searchFilterEnabled,
     defaultVal: Pref.searchFilterEnabled,
     onChanged: (value) {
       SearchQualityFilter.enabled = value;
-      if (value && SearchQualityFilter.mode == SearchFilterMode.off) {
-        SearchQualityFilter.mode = SearchFilterMode.dim;
-        GStorage.setting.put(
-          SettingBoxKey.searchFilterMode,
-          SearchFilterMode.dim.index,
-        );
-      }
-    },
-  ),
-  PopupModel(
-    title: '不相关搜索结果处理',
-    leading: const Icon(Icons.filter_alt_outlined),
-    value: () => SearchQualityFilter.mode == SearchFilterMode.off
-        ? SearchFilterMode.dim
-        : SearchQualityFilter.mode,
-    items: SearchFilterMode.values.where(
-      (item) => item != SearchFilterMode.off,
-    ),
-    onSelected: (value, setState) {
-      SearchQualityFilter.mode = value;
-      GStorage.setting
-          .put(SettingBoxKey.searchFilterMode, value.index)
-          .whenComplete(setState);
     },
   ),
   NormalModel(
@@ -56,7 +32,7 @@ List<SettingsModel> get qualitySettings => [
     leading: const Icon(Icons.play_circle_outline),
     getSubtitle: () => SearchQualityFilter.minPlay == 0
         ? '当前不按播放量过滤；点击手动输入'
-        : '当前 ${SearchQualityFilter.minPlay} 次；强相关结果不会被直接隐藏',
+        : '当前 ${SearchQualityFilter.minPlay} 次；低于阈值时只淡化、不隐藏',
     onTap: _showSearchMinPlayDialog,
   ),
   NormalModel(
@@ -69,7 +45,7 @@ List<SettingsModel> get qualitySettings => [
   ),
   const SwitchModel(
     title: '默认启用评论点赞排序',
-    subtitle: '首批按点赞降序；后加载批次只在自身内部排序并追加，避免阅读位置跳动',
+    subtitle: '首次预加载3页统一排序；之后每批高赞优先并追加，避免阅读位置跳动',
     leading: Icon(Icons.thumb_up_alt_outlined),
     setKey: SettingBoxKey.replySortByLikes,
     defaultVal: true,

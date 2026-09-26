@@ -90,18 +90,9 @@ class SearchVideoController
 
   void toggleQualityFilter() {
     final enable = filterMode.value == SearchFilterMode.off;
-    if (enable && SearchQualityFilter.mode == SearchFilterMode.off) {
-      SearchQualityFilter.mode = SearchFilterMode.dim;
-      GStorage.setting.put(
-        SettingBoxKey.searchFilterMode,
-        SearchFilterMode.dim.index,
-      );
-    }
     SearchQualityFilter.enabled = enable;
     GStorage.setting.put(SettingBoxKey.searchFilterEnabled, enable);
-    filterMode.value = enable
-        ? SearchQualityFilter.mode
-        : SearchFilterMode.off;
+    filterMode.value = enable ? SearchFilterMode.dim : SearchFilterMode.off;
     loadingState.refresh();
   }
 

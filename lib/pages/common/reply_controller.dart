@@ -22,6 +22,8 @@ import 'package:material_ui/material_ui.dart';
 abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
   ReplyController({int count = -1}) : count = RxInt(count);
 
+  static const int _initialLikeSortPageCount = 3;
+
   late final RxInt count;
 
   late final Rx<ReplySortType> sortType;
@@ -61,29 +63,81 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
     ReplySortUtils.stableSortBatchByLikes(
       dataList,
       likes: (item) => item.like.toInt(),
-      protectedPrefix: page == 1 && hasUpTop ? 1 : 0,
+      protectedPrefix:
+          hasUpTop && dataList.isNotEmpty && dataList.first.replyControl.isUpTop
+          ? 1
+          : 0,
     );
+  }
+
+  @override
+  Future<void> queryData([bool isRefresh = true]) {
+    if (isRefresh && sortByLikes.value) {
+      return _queryInitialLikePages();
+    }
+    return super.queryData(isRefresh);
+  }
+
+  /// 首次进入点赞排序时连续读取三页，合并后只排序、展示一次。
+  /// 后续滚动加载仍走 [CommonListController.queryData]，因此只对新批次
+  /// 内部排序并追加，不会把新评论插入用户已经读过的位置前。
+  Future<void> _queryInitialLikePages() async {
+    if (isLoading) return;
+    isLoading = true;
+    final merged = <ReplyInfo>[];
+    LoadingState<R>? loadError;
+
+    try {
+      for (
+        var index = 0;
+        index < _initialLikeSortPageCount && !isEnd;
+        index++
+      ) {
+        final res = await customGetData();
+        if (res case Success(:final response)) {
+          if (customHandleResponse(index == 0, res)) {
+            page++;
+            continue;
+          }
+          final dataList = getDataList(response);
+          if (dataList == null || dataList.isEmpty) {
+            isEnd = true;
+            break;
+          }
+          merged.addAll(dataList);
+          page++;
+        } else {
+          loadError = res;
+          break;
+        }
+      }
+
+      if (merged.isNotEmpty) {
+        handleListResponse(merged);
+        checkIsEnd(merged.length);
+        loadingState.value = Success(merged);
+      } else if (loadError case Error(:final errMsg)) {
+        if (!handleError(errMsg)) {
+          loadingState.value = loadError;
+        }
+      } else {
+        loadingState.value = Success(merged);
+      }
+    } finally {
+      isLoading = false;
+    }
   }
 
   /// 启用本地点赞排序。
   ///
-  /// 开启时只对当前已加载内容做一次全量排序；之后每个新加载批次在内部
-  /// 排序并追加到末尾，所以不会把新出现的高赞评论插到用户已读位置前。
+  /// 开启时重新加载前三页并统一排序；之后每个新加载批次在内部排序并
+  /// 追加到末尾，所以不会把新出现的高赞评论插到用户已读位置前。
   Future<void> selectLikeSort() async {
     if (isLoading || sortByLikes.value) return;
     sortByLikes.value = true;
     await GStorage.setting.put(SettingBoxKey.replySortByLikes, true);
     feedBack();
-    if (loadingState.value case Success(:final response)) {
-      if (response != null) {
-        ReplySortUtils.stableSortBatchByLikes(
-          response,
-          likes: (item) => item.like.toInt(),
-          protectedPrefix: hasUpTop ? 1 : 0,
-        );
-        loadingState.refresh();
-      }
-    }
+    await onReload();
   }
 
   /// 选择 B 站接口提供的“最热”或“最新”排序。

@@ -14,7 +14,6 @@ void main() {
     required String title,
     String? tags,
     String? description,
-    String? author,
     int view = 10000,
     int like = 200,
   }) => SearchQualityEngine.evaluate(
@@ -22,7 +21,6 @@ void main() {
     title: title,
     tags: tags,
     description: description,
-    author: author,
     view: view,
     like: like,
     minPlay: 500,
@@ -43,16 +41,16 @@ void main() {
     tags: '社会,生活',
     description: '与游戏无关的日常记录',
   );
-  check(titleOnly.relevance == SearchRelevance.uncertain, '仅标题命中应待确认');
-  check(!titleOnly.shouldHide(SearchFilterMode.hide), '待确认项不应直接隐藏');
+  check(titleOnly.relevance == SearchRelevance.related, '标题完整命中应放行');
+  check(!titleOnly.shouldDim(SearchFilterMode.dim), '标题完整命中不应淡化');
 
   final unrelated = assess(
     title: '今日汽车资讯',
     tags: '汽车,新闻',
     description: '新车试驾',
-    author: '车评人',
   );
-  check(unrelated.shouldHide(SearchFilterMode.hide), '无关项应隐藏');
+  check(!unrelated.shouldHide(SearchFilterMode.hide), '任何搜索结果都不应隐藏');
+  check(unrelated.shouldDim(SearchFilterMode.dim), '无搜索证据时应淡化');
 
   final lowRatio = assess(
     title: '原神攻略',

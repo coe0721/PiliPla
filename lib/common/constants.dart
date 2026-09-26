@@ -1,7 +1,7 @@
 abstract final class Constants {
   static const appName = 'PiliPla';
   static const sourceCodeUrl = 'https://github.com/coe0721/PiliPla';
-  static const releaseTag = 'v2.1.4-pilipla.3';
+  static const releaseTag = 'v2.1.4-pilipla.4';
 
   // 27eb53fc9058f8c3  移动端 Android
   // 4409e2ce8ffd12b8  HD版

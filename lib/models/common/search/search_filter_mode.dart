@@ -34,9 +34,9 @@ class SearchQualityAssessment {
   bool get hasIssue => relevance != SearchRelevance.related || lowQuality;
 
   bool shouldHide(SearchFilterMode mode) {
-    if (mode != SearchFilterMode.hide) return false;
-    if (relevance == SearchRelevance.unrelated) return true;
-    return lowQuality && relevance != SearchRelevance.related;
+    // 搜索判断只能提供辅助证据，不能可靠确认视频内容无关。
+    // 所有可疑结果都保留在列表中，仅通过淡化提示用户。
+    return false;
   }
 
   bool shouldDim(SearchFilterMode mode) {

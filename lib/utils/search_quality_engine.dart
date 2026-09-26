@@ -15,7 +15,6 @@ abstract final class SearchQualityEngine {
   static SearchQualityAssessment evaluate({
     required String keyword,
     required String title,
-    String? author,
     String? description,
     String? tags,
     int? view,
@@ -36,36 +35,32 @@ abstract final class SearchQualityEngine {
     final titleMatch = _match(title, query, allowFuzzy: true);
     final tagMatch = _match(tags, query, allowFuzzy: true);
     final descMatch = _match(description, query, allowFuzzy: false);
-    final authorMatch = _match(author, query, allowFuzzy: true);
     final titleHit = titleMatch != _MatchStrength.none;
     final tagHit = tagMatch != _MatchStrength.none;
     final descHit = descMatch != _MatchStrength.none;
-    final authorHit = authorMatch != _MatchStrength.none;
     final evidenceCount = [
       titleHit,
       tagHit,
       descHit,
-      authorHit,
     ].where((value) => value).length;
 
     var score = 0;
-    if (titleHit) score += 5;
-    if (tagHit) score += tagMatch == _MatchStrength.fuzzy ? 5 : 6;
-    if (descHit) score += 2;
-    if (authorHit) score += 4;
+    // 搜索结果本身已经经过 B 站召回。这里优先避免误伤：标题或标签只要
+    // 有完整、近距离或一次容错命中，就足以视为相关，不再要求标签和简介
+    // 必须重复出现同一关键词。
+    if (titleHit) {
+      score += titleMatch == _MatchStrength.partial ? 2 : 5;
+    }
+    if (tagHit) {
+      score += tagMatch == _MatchStrength.partial ? 3 : 6;
+    }
+    if (descHit) {
+      score += descMatch == _MatchStrength.partial ? 1 : 5;
+    }
     if (evidenceCount >= 2) score += 2;
 
     final combined = '$title ${tags ?? ''} ${description ?? ''}';
     if (evidenceCount > 0 && _fanwork.hasMatch(combined)) score += 1;
-
-    final titleOnly =
-        titleMatch == _MatchStrength.exact &&
-        !tagHit &&
-        !descHit &&
-        !authorHit &&
-        ((tags?.trim().isNotEmpty ?? false) ||
-            (description?.trim().isNotEmpty ?? false));
-    if (titleOnly) score = 3;
 
     final relevance = switch (score) {
       >= 5 => SearchRelevance.related,
@@ -78,9 +73,9 @@ abstract final class SearchQualityEngine {
       case SearchRelevance.related:
         break;
       case SearchRelevance.uncertain:
-        reasons.add(titleOnly ? '仅标题命中，标签/简介未命中' : '关联证据较弱');
+        reasons.add('有部分关联证据，已保守保留');
       case SearchRelevance.unrelated:
-        reasons.add('标题、标签、简介和UP均未命中');
+        reasons.add('标题、标签和简介未找到直接文字证据');
     }
 
     var lowQuality = false;
@@ -140,18 +135,43 @@ abstract final class SearchQualityEngine {
         _containsWithinOneEdit(normalized, query)) {
       return _MatchStrength.fuzzy;
     }
+
+    // 长查询常由多个词组成，标题或标签只出现其中一段仍可能是有效结果，
+    // 例如搜索“原神深渊”而标题只写角色名、标签只写“原神”。这种情况
+    // 只作为弱证据保留，不会被误判成强相关。
+    if (query.length >= 4 && _hasMeaningfulFragment(normalized, query)) {
+      return _MatchStrength.partial;
+    }
     return _MatchStrength.none;
   }
 
+  static bool _hasMeaningfulFragment(String text, String query) {
+    final fragmentLength = query.length >= 6 ? 3 : 2;
+    for (
+      var start = 0;
+      start + fragmentLength <= query.length;
+      start += fragmentLength
+    ) {
+      if (text.contains(query.substring(start, start + fragmentLength))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   static bool _orderedNear(String text, String query) {
-    final maxSpan = query.length * 4;
+    // 标题常在关键词之间插入版本号、角色名或活动名。旧的 4 倍长度窗口
+    // 会误杀“原神 5.8 版本主线剧情”这类结果；扩大窗口仍保持线性扫描。
+    final maxSpan = query.length * 12;
     for (var start = 0; start < text.length; start++) {
       if (text.codeUnitAt(start) != query.codeUnitAt(0)) continue;
       var queryIndex = 1;
       final end = (start + maxSpan).clamp(0, text.length);
-      for (var textIndex = start + 1;
-          textIndex < end && queryIndex < query.length;
-          textIndex++) {
+      for (
+        var textIndex = start + 1;
+        textIndex < end && queryIndex < query.length;
+        textIndex++
+      ) {
         if (text.codeUnitAt(textIndex) == query.codeUnitAt(queryIndex)) {
           queryIndex++;
         }
@@ -235,4 +255,4 @@ abstract final class SearchQualityEngine {
   }
 }
 
-enum _MatchStrength { none, fuzzy, ordered, exact }
+enum _MatchStrength { none, partial, fuzzy, ordered, exact }

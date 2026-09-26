@@ -9,13 +9,12 @@ import 'package:PiliPlus/utils/storage_pref.dart';
 /// 因而不会出现滚动很久后才完成判断，也不会增加账号或网络风险。
 abstract final class SearchQualityFilter {
   static bool enabled = Pref.searchFilterEnabled;
-  static SearchFilterMode mode = Pref.searchFilterMode;
   static int minPlay = Pref.searchFilterMinPlay;
   static int minLikePermille = Pref.searchFilterMinLikePermille;
   static double dimOpacity = Pref.searchDimOpacity;
 
   static SearchFilterMode get effectiveMode =>
-      enabled ? mode : SearchFilterMode.off;
+      enabled ? SearchFilterMode.dim : SearchFilterMode.off;
 
   static SearchQualityAssessment evaluate(
     SearchVideoItemModel item,
@@ -23,7 +22,6 @@ abstract final class SearchQualityFilter {
   ) => evaluateFields(
     keyword: keyword,
     title: item.title,
-    author: item.owner.name,
     description: item.desc,
     tags: item.tag,
     view: item.stat.view,
@@ -33,7 +31,6 @@ abstract final class SearchQualityFilter {
   static SearchQualityAssessment evaluateFields({
     required String keyword,
     required String title,
-    String? author,
     String? description,
     String? tags,
     int? view,
@@ -43,7 +40,6 @@ abstract final class SearchQualityFilter {
   }) => SearchQualityEngine.evaluate(
     keyword: keyword,
     title: title,
-    author: author,
     description: description,
     tags: tags,
     view: view,
