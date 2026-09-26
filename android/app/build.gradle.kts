@@ -55,9 +55,7 @@ android {
     }
 
     buildFeatures {
-        if (project.hasProperty("dev")) {
-            resValues = true
-        }
+        resValues = true
     }
 
     buildTypes {
@@ -71,6 +69,13 @@ android {
                     type = "string",
                     name = "app_name",
                     value = "PiliPlus dev",
+                )
+            } else {
+                applicationIdSuffix = ".searchcomment"
+                resValue(
+                    type = "string",
+                    name = "app_name",
+                    value = "PiliPla",
                 )
             }
 //            proguardFiles(

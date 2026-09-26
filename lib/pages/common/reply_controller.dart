@@ -10,6 +10,9 @@ import 'package:PiliPlus/pages/common/publish/publish_route.dart';
 import 'package:PiliPlus/pages/video/reply_new/view.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/reply_utils.dart';
+import 'package:PiliPlus/utils/reply_sort_utils.dart';
+import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -22,6 +25,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
   late final RxInt count;
 
   late final Rx<ReplySortType> sortType;
+  late final RxBool sortByLikes;
   late Mode mode;
 
   final savedReplies = <Object, List<RichTextItem>?>{};
@@ -47,7 +51,54 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
     super.onInit();
     final cacheSortType = Pref.replySortType;
     sortType = cacheSortType.obs;
+    sortByLikes = Pref.replySortByLikes.obs;
     mode = cacheSortType == .time ? Mode.MAIN_LIST_TIME : Mode.MAIN_LIST_HOT;
+  }
+
+  @override
+  void handleListResponse(List<ReplyInfo> dataList) {
+    if (!sortByLikes.value) return;
+    ReplySortUtils.stableSortBatchByLikes(
+      dataList,
+      likes: (item) => item.like.toInt(),
+      protectedPrefix: page == 1 && hasUpTop ? 1 : 0,
+    );
+  }
+
+  /// 启用本地点赞排序。
+  ///
+  /// 开启时只对当前已加载内容做一次全量排序；之后每个新加载批次在内部
+  /// 排序并追加到末尾，所以不会把新出现的高赞评论插到用户已读位置前。
+  Future<void> selectLikeSort() async {
+    if (isLoading || sortByLikes.value) return;
+    sortByLikes.value = true;
+    await GStorage.setting.put(SettingBoxKey.replySortByLikes, true);
+    feedBack();
+    if (loadingState.value case Success(:final response)) {
+      if (response != null) {
+        ReplySortUtils.stableSortBatchByLikes(
+          response,
+          likes: (item) => item.like.toInt(),
+          protectedPrefix: hasUpTop ? 1 : 0,
+        );
+        loadingState.refresh();
+      }
+    }
+  }
+
+  /// 选择 B 站接口提供的“最热”或“最新”排序。
+  Future<void> selectServerSort(ReplySortType target) async {
+    if (isLoading || target == ReplySortType.select) return;
+    if (!sortByLikes.value && sortType.value == target) return;
+    sortByLikes.value = false;
+    sortType.value = target;
+    mode = target == ReplySortType.time
+        ? Mode.MAIN_LIST_TIME
+        : Mode.MAIN_LIST_HOT;
+    await GStorage.setting.put(SettingBoxKey.replySortByLikes, false);
+    await GStorage.setting.put(SettingBoxKey.replySortType, target.index);
+    feedBack();
+    await onReload();
   }
 
   @override
@@ -125,11 +176,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
     return (inputDisable, hint);
   }
 
-  void onReply(
-    ReplyInfo? replyItem, {
-    int? oid,
-    int? replyType,
-  }) {
+  void onReply(ReplyInfo? replyItem, {int? oid, int? replyType}) {
     if (loadingState.value case Error(:final errMsg, :final code)) {
       if (errMsg != null && (code == 12061 || code == 12002)) {
         SmartDialog.showToast(errMsg);
@@ -172,35 +219,33 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
             settings: RouteSettings(arguments: Get.arguments),
           ),
         )
-        .then(
-          (replyInfo) {
-            if (replyInfo is ReplyInfo) {
-              savedReplies.remove(key);
-              if (loadingState.value case Success(:final response)) {
-                if (response == null) {
-                  loadingState.value = Success([replyInfo]);
-                } else {
-                  if (oid != null) {
-                    response.insert(hasUpTop ? 1 : 0, replyInfo);
-                  } else {
-                    replyItem!
-                      ..count += 1
-                      ..replies.add(replyInfo);
-                  }
-                  loadingState.refresh();
-                }
-              } else {
+        .then((replyInfo) {
+          if (replyInfo is ReplyInfo) {
+            savedReplies.remove(key);
+            if (loadingState.value case Success(:final response)) {
+              if (response == null) {
                 loadingState.value = Success([replyInfo]);
+              } else {
+                if (oid != null) {
+                  response.insert(hasUpTop ? 1 : 0, replyInfo);
+                } else {
+                  replyItem!
+                    ..count += 1
+                    ..replies.add(replyInfo);
+                }
+                loadingState.refresh();
               }
-              count.value += 1;
-
-              // check reply
-              if (enableCommAntifraud) {
-                onCheckReply(replyInfo, isManual: false);
-              }
+            } else {
+              loadingState.value = Success([replyInfo]);
             }
-          },
-        );
+            count.value += 1;
+
+            // check reply
+            if (enableCommAntifraud) {
+              onCheckReply(replyInfo, isManual: false);
+            }
+          }
+        });
   }
 
   void onRemove(int index, ReplyInfo item, int? subIndex) {
@@ -224,12 +269,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
     );
   }
 
-  Future<void> onToggleTop(
-    ReplyInfo item,
-    int index,
-    oid,
-    int type,
-  ) async {
+  Future<void> onToggleTop(ReplyInfo item, int index, oid, int type) async {
     bool isUpTop = item.replyControl.isUpTop;
     final res = await ReplyHttp.replyTop(
       oid: oid,

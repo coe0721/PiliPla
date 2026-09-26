@@ -5,14 +5,14 @@
 
 
 <div align="center">
-    <h1>PiliPlus</h1>
+    <h1>PiliPla</h1>
 <div align="center">
     
-![GitHub repo size](https://img.shields.io/github/repo-size/bggRGjQaUbCoE/PiliPlus) 
-![GitHub Repo stars](https://img.shields.io/github/stars/bggRGjQaUbCoE/PiliPlus) 
-![GitHub all releases](https://img.shields.io/github/downloads/bggRGjQaUbCoE/PiliPlus/total) 
+![GitHub repo size](https://img.shields.io/github/repo-size/coe0721/PiliPla)
+![GitHub Repo stars](https://img.shields.io/github/stars/coe0721/PiliPla)
+![GitHub all releases](https://img.shields.io/github/downloads/coe0721/PiliPla/total)
 </div>
-    <p>使用Flutter开发的BiliBili第三方客户端</p>
+    <p>基于 PiliPlus 2.1.4 系列的搜索与评论体验优化版</p>
     
 <img src="assets/screenshots/510shots_so.png" width="32%" alt="home" />
 <img src="assets/screenshots/174shots_so.png" width="32%" alt="home" />
@@ -21,6 +21,8 @@
 <img src="assets/screenshots/main_screen.png" width="96%" alt="home" />
 <br/>
 </div>
+
+> PiliPla 保留 PiliPlus 原有界面和主要功能，仅重点增加本地搜索质量过滤、评论按点赞排序及相应设置。上游项目：[bggRGjQaUbCoE/PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus)。具体改动见 [CUSTOM_FEATURES.zh-CN.md](CUSTOM_FEATURES.zh-CN.md)。
 
 
 <br/>
@@ -219,7 +221,7 @@
 
 ## 声明
 
-此项目（PiliPlus）是个人为了兴趣而开发，仅用于学习和测试，请于下载后24小时内删除。
+此项目（PiliPla）是基于 PiliPlus 的个人定制版本，仅用于学习和测试，请于下载后24小时内删除。
 所用API皆从官方网站收集，不提供任何破解内容。
 在此致敬原作者：[guozhigq/pilipala](https://github.com/guozhigq/pilipala)
 在此致敬上游作者：[orz12/PiliPalaX](https://github.com/orz12/PiliPalaX)
@@ -244,10 +246,10 @@
 
 ## Star History
 
-<a href="https://star-history.dera.page/#bggRGjQaUbCoE/PiliPlus&Date">
+<a href="https://star-history.dera.page/#coe0721/PiliPla&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=bggRGjQaUbCoE/PiliPlus&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=bggRGjQaUbCoE/PiliPlus&type=Date" />
-   <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=bggRGjQaUbCoE/PiliPlus&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=coe0721/PiliPla&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=coe0721/PiliPla&type=Date" />
+   <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=coe0721/PiliPla&type=Date" />
  </picture>
 </a>

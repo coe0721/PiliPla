@@ -12,20 +12,14 @@ import 'package:PiliPlus/utils/parse_int.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 
 abstract class SearchNumData<T> {
-  SearchNumData({
-    this.numResults,
-    this.list,
-  });
+  SearchNumData({this.numResults, this.list});
 
   int? numResults;
   List<T>? list;
 }
 
 class SearchVideoData extends SearchNumData<SearchVideoItemModel> {
-  SearchVideoData({
-    super.numResults,
-    super.list,
-  });
+  SearchVideoData({super.numResults, super.list});
 
   SearchVideoData.fromJson(Map<String, dynamic> json) {
     numResults = (json['numResults'] as num?)?.toInt();
@@ -197,6 +191,7 @@ class SearchVideoItemModel extends HorizontalVideoModel {
     cover = (json['pic'] as String?)?.http2https;
     pubdate = json['pubdate'];
     ctime = json['senddate'];
+    tag = json['tag'] as String?;
     duration = DurationUtils.parseDuration(json['duration']);
     owner = SearchOwner.fromJson(json);
     stat = SearchStat.fromJson(json);
@@ -240,10 +235,7 @@ class SearchOwner extends Owner {
 }
 
 class SearchUserData extends SearchNumData<SearchUserItemModel> {
-  SearchUserData({
-    super.numResults,
-    super.list,
-  });
+  SearchUserData({super.numResults, super.list});
 
   SearchUserData.fromJson(Map<String, dynamic> json) {
     numResults = (json['numResults'] as num?)?.toInt();
@@ -316,10 +308,7 @@ class SearchUserItemModel {
 }
 
 class SearchLiveData extends SearchNumData<SearchLiveItemModel> {
-  SearchLiveData({
-    super.numResults,
-    super.list,
-  });
+  SearchLiveData({super.numResults, super.list});
 
   SearchLiveData.fromJson(Map<String, dynamic> json) {
     numResults = (json['numResults'] as num?)?.toInt();
@@ -394,10 +383,7 @@ class SearchLiveItemModel {
 }
 
 class SearchPgcData extends SearchNumData<SearchPgcItemModel> {
-  SearchPgcData({
-    super.numResults,
-    super.list,
-  });
+  SearchPgcData({super.numResults, super.list});
 
   SearchPgcData.fromJson(Map<String, dynamic> json) {
     numResults = (json['numResults'] as num?)?.toInt();
@@ -492,10 +478,7 @@ class SearchPgcItemModel {
 }
 
 class SearchArticleData extends SearchNumData<SearchArticleItemModel> {
-  SearchArticleData({
-    super.numResults,
-    super.list,
-  });
+  SearchArticleData({super.numResults, super.list});
 
   SearchArticleData.fromJson(Map<String, dynamic> json) {
     numResults = (json['numResults'] as num?)?.toInt();

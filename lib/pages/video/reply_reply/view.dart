@@ -1,9 +1,9 @@
 import 'package:PiliPlus/common/skeleton/video_reply.dart';
 import 'package:PiliPlus/common/sliver_single_child_delegate.dart';
-import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/colored_box_transition.dart';
 import 'package:PiliPlus/common/widgets/flutter/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/reply_like_sort_button.dart';
 import 'package:PiliPlus/common/widgets/scaffold/mini_scaffold.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/simple_colored_box.dart';
@@ -251,27 +251,18 @@ class _VideoReplyReplyPanelState extends State<VideoReplyReplyPanel>
         child: Row(
           mainAxisAlignment: .spaceBetween,
           children: [
-            Obx(
-              () {
-                final count = _controller.count.value;
-                return count != -1
-                    ? Text(
-                        '相关回复共${NumUtils.numFormat(count)}条',
-                        style: const TextStyle(fontSize: 13),
-                      )
-                    : const SizedBox.shrink();
-              },
-            ),
-            TextButton.icon(
-              style: Style.buttonStyle,
-              onPressed: _controller.queryBySort,
-              icon: Icon(Icons.sort, size: 16, color: colorScheme.secondary),
-              label: Obx(
-                () => Text(
-                  _controller.sortType.value.label,
-                  style: TextStyle(fontSize: 13, color: colorScheme.secondary),
-                ),
-              ),
+            Obx(() {
+              final count = _controller.count.value;
+              return count != -1
+                  ? Text(
+                      '相关回复共${NumUtils.numFormat(count)}条',
+                      style: const TextStyle(fontSize: 13),
+                    )
+                  : const SizedBox.shrink();
+            }),
+            ReplyLikeSortButton(
+              controller: _controller,
+              colorScheme: colorScheme,
             ),
           ],
         ),
@@ -304,10 +295,7 @@ class _VideoReplyReplyPanelState extends State<VideoReplyReplyPanel>
               child: Text(
                 _controller.isEnd ? '没有更多了' : '加载中...',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.outline,
-                ),
+                style: TextStyle(fontSize: 12, color: colorScheme.outline),
               ),
             );
           }

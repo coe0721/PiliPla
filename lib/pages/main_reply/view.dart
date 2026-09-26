@@ -1,8 +1,8 @@
 import 'package:PiliPlus/common/skeleton/video_reply.dart';
 import 'package:PiliPlus/common/sliver_single_child_delegate.dart';
-import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/flutter/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/reply_like_sort_button.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/sliver/sliver_floating_header.dart';
 import 'package:PiliPlus/common/widgets/view_safe_area.dart';
@@ -27,17 +27,8 @@ class MainReplyPage extends StatefulWidget {
   @override
   State<MainReplyPage> createState() => _MainReplyPageState();
 
-  static void toMainReplyPage({
-    required int oid,
-    required int replyType,
-  }) {
-    Get.toNamed(
-      '/mainReply',
-      arguments: {
-        'oid': oid,
-        'replyType': replyType,
-      },
-    );
+  static void toMainReplyPage({required int oid, required int replyType}) {
+    Get.toNamed('/mainReply', arguments: {'oid': oid, 'replyType': replyType});
   }
 }
 
@@ -65,10 +56,7 @@ class _MainReplyPageState extends State<MainReplyPage>
         child: refreshIndicator(
           onRefresh: _controller.onRefresh,
           child: Padding(
-            padding: EdgeInsets.only(
-              left: padding.left,
-              right: padding.right,
-            ),
+            padding: EdgeInsets.only(left: padding.left, right: padding.right),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
@@ -160,10 +148,7 @@ class _MainReplyPageState extends State<MainReplyPage>
                   }
                 },
               )
-            : HttpError(
-                errMsg: '还没有评论',
-                onReload: _controller.onReload,
-              ),
+            : HttpError(errMsg: '还没有评论', onReload: _controller.onReload),
       Error(:final errMsg) => HttpError(
         errMsg: errMsg,
         onReload: _controller.onReload,
@@ -172,7 +157,6 @@ class _MainReplyPageState extends State<MainReplyPage>
   }
 
   Widget buildReplyHeader(ColorScheme colorScheme) {
-    final secondary = colorScheme.secondary;
     return SliverFloatingHeaderWidget(
       backgroundColor: colorScheme.surface,
       child: Padding(
@@ -180,24 +164,13 @@ class _MainReplyPageState extends State<MainReplyPage>
         child: Row(
           mainAxisAlignment: .spaceBetween,
           children: [
-            Obx(
-              () {
-                final count = _controller.count.value;
-                return Text(
-                  '${count == -1 ? 0 : NumUtils.numFormat(count)}条回复',
-                );
-              },
-            ),
-            TextButton.icon(
-              style: Style.buttonStyle,
-              onPressed: _controller.queryBySort,
-              icon: Icon(Icons.sort, size: 16, color: secondary),
-              label: Obx(
-                () => Text(
-                  _controller.sortType.value.descShort,
-                  style: TextStyle(fontSize: 13, color: secondary),
-                ),
-              ),
+            Obx(() {
+              final count = _controller.count.value;
+              return Text('${count == -1 ? 0 : NumUtils.numFormat(count)}条回复');
+            }),
+            ReplyLikeSortButton(
+              controller: _controller,
+              colorScheme: colorScheme,
             ),
           ],
         ),

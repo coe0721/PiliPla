@@ -69,6 +69,11 @@ class _SettingPageState extends State<SettingPage> {
       icon: Icon(Icons.style_outlined),
     ),
     _SettingsModel(
+      type: SettingType.qualitySetting,
+      subtitle: '搜索过滤、淡化程度、评论点赞排序和低赞评论淡化',
+      icon: Icon(Icons.tune_outlined),
+    ),
+    _SettingsModel(
       type: SettingType.extraSetting,
       subtitle: '震动、搜索、收藏、ai、评论、动态、代理、更新检查等',
       icon: Icon(Icons.extension_outlined),
@@ -119,6 +124,7 @@ class _SettingPageState extends State<SettingPage> {
                       .videoSetting ||
                       .playSetting ||
                       .styleSetting ||
+                      .qualitySetting ||
                       .extraSetting => CommonSetting(
                         settingType: _type,
                         showAppBar: false,
@@ -150,6 +156,7 @@ class _SettingPageState extends State<SettingPage> {
           .videoSetting ||
           .playSetting ||
           .styleSetting ||
+          .qualitySetting ||
           .extraSetting => CommonSetting(settingType: type),
           .webdavSetting => const WebDavSettingPage(),
           .about => const AboutPage(),

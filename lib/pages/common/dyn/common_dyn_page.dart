@@ -1,8 +1,8 @@
 import 'package:PiliPlus/common/skeleton/video_reply.dart';
 import 'package:PiliPlus/common/sliver_single_child_delegate.dart';
-import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/reply_like_sort_button.dart';
 import 'package:PiliPlus/common/widgets/scaffold/mini_scaffold.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/sliver/sliver_pinned_header.dart';
@@ -103,7 +103,6 @@ mixin CommonDynPageMixin<T extends StatefulWidget>
   }
 
   Widget buildReplyHeader() {
-    final secondary = theme.colorScheme.secondary;
     return SliverPinnedHeader(
       backgroundColor: theme.colorScheme.surface,
       child: Padding(
@@ -111,24 +110,13 @@ mixin CommonDynPageMixin<T extends StatefulWidget>
         child: Row(
           mainAxisAlignment: .spaceBetween,
           children: [
-            Obx(
-              () {
-                final count = controller.count.value;
-                return Text(
-                  '${count == -1 ? 0 : NumUtils.numFormat(count)}条回复',
-                );
-              },
-            ),
-            TextButton.icon(
-              style: Style.buttonStyle,
-              onPressed: controller.queryBySort,
-              icon: Icon(Icons.sort, size: 16, color: secondary),
-              label: Obx(
-                () => Text(
-                  controller.sortType.value.descShort,
-                  style: TextStyle(fontSize: 13, color: secondary),
-                ),
-              ),
+            Obx(() {
+              final count = controller.count.value;
+              return Text('${count == -1 ? 0 : NumUtils.numFormat(count)}条回复');
+            }),
+            ReplyLikeSortButton(
+              controller: controller,
+              colorScheme: theme.colorScheme,
             ),
           ],
         ),
@@ -201,10 +189,7 @@ mixin CommonDynPageMixin<T extends StatefulWidget>
           );
         }
 
-        final child = HttpError(
-          errMsg: '还没有评论',
-          onReload: controller.onReload,
-        );
+        final child = HttpError(errMsg: '还没有评论', onReload: controller.onReload);
         if (controller.voteCard case final voteCard?) {
           return SliverMainAxisGroup(
             slivers: [
@@ -217,10 +202,7 @@ mixin CommonDynPageMixin<T extends StatefulWidget>
         }
         return child;
       case Error(:final errMsg):
-        return HttpError(
-          errMsg: errMsg,
-          onReload: controller.onReload,
-        );
+        return HttpError(errMsg: errMsg, onReload: controller.onReload);
     }
   }
 

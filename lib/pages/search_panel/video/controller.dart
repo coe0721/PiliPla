@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/common/search/search_filter_mode.dart';
 import 'package:PiliPlus/models/common/search/video_search_type.dart';
 import 'package:PiliPlus/models/search/result.dart';
 import 'package:PiliPlus/pages/search/widgets/search_text.dart';
@@ -9,6 +10,9 @@ import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/date_utils.dart';
 import 'package:PiliPlus/utils/extension/context_ext.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
+import 'package:PiliPlus/utils/search_quality_filter.dart';
+import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
@@ -63,6 +67,44 @@ class SearchVideoController
     required super.tag,
   });
 
+  final Rx<SearchFilterMode> filterMode = SearchQualityFilter.effectiveMode.obs;
+  final Map<SearchVideoItemModel, SearchQualityAssessment> _assessmentCache =
+      {};
+
+  SearchQualityAssessment assessment(SearchVideoItemModel item) =>
+      _assessmentCache.putIfAbsent(
+        item,
+        () => SearchQualityFilter.evaluate(item, keyword),
+      );
+
+  List<SearchVideoItemModel> visibleItems(List<SearchVideoItemModel> items) {
+    final mode = filterMode.value;
+    if (mode != SearchFilterMode.hide) return items;
+    return items
+        .where((item) => !assessment(item).shouldHide(mode))
+        .toList(growable: false);
+  }
+
+  int hiddenCount(List<SearchVideoItemModel> items) =>
+      items.length - visibleItems(items).length;
+
+  void toggleQualityFilter() {
+    final enable = filterMode.value == SearchFilterMode.off;
+    if (enable && SearchQualityFilter.mode == SearchFilterMode.off) {
+      SearchQualityFilter.mode = SearchFilterMode.dim;
+      GStorage.setting.put(
+        SettingBoxKey.searchFilterMode,
+        SearchFilterMode.dim.index,
+      );
+    }
+    SearchQualityFilter.enabled = enable;
+    GStorage.setting.put(SettingBoxKey.searchFilterEnabled, enable);
+    filterMode.value = enable
+        ? SearchQualityFilter.mode
+        : SearchFilterMode.off;
+    loadingState.refresh();
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -71,6 +113,12 @@ class SearchVideoController
     DateTime now = DateTime.now();
     pubBeginDate = DateTime(now.year, now.month, 1, 0, 0, 0);
     pubEndDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+  }
+
+  @override
+  Future<void> onRefresh() {
+    _assessmentCache.clear();
+    return super.onRefresh();
   }
 
   @override
@@ -173,55 +221,53 @@ class SearchVideoController
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: VideoPubTimeType.values.map(
-                    (e) {
-                      final isCurr = e == pubTimeType;
-                      return SearchText(
-                        text: e.label,
-                        onTap: (text) {
-                          pubTimeType = e;
-                          DateTime now = DateTime.now();
-                          if (e == VideoPubTimeType.all) {
-                            pubBegin = null;
-                            pubEnd = null;
-                          } else {
-                            pubBegin =
-                                DateTime(
-                                  now.year,
-                                  now.month,
-                                  now.day -
-                                      (e == VideoPubTimeType.day
-                                          ? 0
-                                          : e == VideoPubTimeType.week
-                                          ? 6
-                                          : 179),
-                                  0,
-                                  0,
-                                  0,
-                                ).millisecondsSinceEpoch ~/
-                                1000;
-                            pubEnd =
-                                DateTime(
-                                  now.year,
-                                  now.month,
-                                  now.day,
-                                  23,
-                                  59,
-                                  59,
-                                ).millisecondsSinceEpoch ~/
-                                1000;
-                          }
-                          onSortSearch();
-                        },
-                        bgColor: isCurr
-                            ? theme.colorScheme.secondaryContainer
-                            : null,
-                        textColor: isCurr
-                            ? theme.colorScheme.onSecondaryContainer
-                            : null,
-                      );
-                    },
-                  ).toList(),
+                  children: VideoPubTimeType.values.map((e) {
+                    final isCurr = e == pubTimeType;
+                    return SearchText(
+                      text: e.label,
+                      onTap: (text) {
+                        pubTimeType = e;
+                        DateTime now = DateTime.now();
+                        if (e == VideoPubTimeType.all) {
+                          pubBegin = null;
+                          pubEnd = null;
+                        } else {
+                          pubBegin =
+                              DateTime(
+                                now.year,
+                                now.month,
+                                now.day -
+                                    (e == VideoPubTimeType.day
+                                        ? 0
+                                        : e == VideoPubTimeType.week
+                                        ? 6
+                                        : 179),
+                                0,
+                                0,
+                                0,
+                              ).millisecondsSinceEpoch ~/
+                              1000;
+                          pubEnd =
+                              DateTime(
+                                now.year,
+                                now.month,
+                                now.day,
+                                23,
+                                59,
+                                59,
+                              ).millisecondsSinceEpoch ~/
+                              1000;
+                        }
+                        onSortSearch();
+                      },
+                      bgColor: isCurr
+                          ? theme.colorScheme.secondaryContainer
+                          : null,
+                      textColor: isCurr
+                          ? theme.colorScheme.onSecondaryContainer
+                          : null,
+                    );
+                  }).toList(),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -238,24 +284,22 @@ class SearchVideoController
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: VideoDurationType.values.map(
-                    (e) {
-                      final isCurr = e == videoDurationType;
-                      return SearchText(
-                        text: e.label,
-                        onTap: (_) {
-                          videoDurationType = e;
-                          onSortSearch(label: e.label);
-                        },
-                        bgColor: isCurr
-                            ? theme.colorScheme.secondaryContainer
-                            : null,
-                        textColor: isCurr
-                            ? theme.colorScheme.onSecondaryContainer
-                            : null,
-                      );
-                    },
-                  ).toList(),
+                  children: VideoDurationType.values.map((e) {
+                    final isCurr = e == videoDurationType;
+                    return SearchText(
+                      text: e.label,
+                      onTap: (_) {
+                        videoDurationType = e;
+                        onSortSearch(label: e.label);
+                      },
+                      bgColor: isCurr
+                          ? theme.colorScheme.secondaryContainer
+                          : null,
+                      textColor: isCurr
+                          ? theme.colorScheme.onSecondaryContainer
+                          : null,
+                    );
+                  }).toList(),
                 ),
                 const SizedBox(height: 20),
                 const Text('内容分区', style: TextStyle(fontSize: 16)),
@@ -263,24 +307,22 @@ class SearchVideoController
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: VideoZoneType.values.map(
-                    (e) {
-                      final isCurr = e == videoZoneType;
-                      return SearchText(
-                        text: e.label,
-                        onTap: (_) {
-                          videoZoneType = e;
-                          onSortSearch(label: e.label);
-                        },
-                        bgColor: isCurr
-                            ? theme.colorScheme.secondaryContainer
-                            : null,
-                        textColor: isCurr
-                            ? theme.colorScheme.onSecondaryContainer
-                            : null,
-                      );
-                    },
-                  ).toList(),
+                  children: VideoZoneType.values.map((e) {
+                    final isCurr = e == videoZoneType;
+                    return SearchText(
+                      text: e.label,
+                      onTap: (_) {
+                        videoZoneType = e;
+                        onSortSearch(label: e.label);
+                      },
+                      bgColor: isCurr
+                          ? theme.colorScheme.secondaryContainer
+                          : null,
+                      textColor: isCurr
+                          ? theme.colorScheme.onSecondaryContainer
+                          : null,
+                    );
+                  }).toList(),
                 ),
               ],
             ),

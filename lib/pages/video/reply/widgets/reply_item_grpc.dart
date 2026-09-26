@@ -44,6 +44,7 @@ import 'package:PiliPlus/utils/global_data.dart';
 import 'package:PiliPlus/utils/image_utils.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
+import 'package:PiliPlus/utils/reply_quality_filter.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
@@ -136,7 +137,7 @@ class ReplyItemGrpc extends StatelessWidget {
         ],
       );
     }
-    return Material(
+    Widget item = Material(
       type: MaterialType.transparency,
       child: InkWell(
         onTap: () => replyReply?.call(replyItem, null),
@@ -145,6 +146,10 @@ class ReplyItemGrpc extends StatelessWidget {
         child: child,
       ),
     );
+    if (ReplyQualityFilter.shouldDim(replyItem)) {
+      item = Opacity(opacity: ReplyQualityFilter.opacity, child: item);
+    }
+    return item;
   }
 
   Widget _buildHeader(BuildContext context, ColorScheme colorScheme) {

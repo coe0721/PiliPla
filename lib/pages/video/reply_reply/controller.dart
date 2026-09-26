@@ -1,5 +1,5 @@
 import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
-    show ReplyInfo, DetailListReply, Mode;
+    show ReplyInfo, DetailListReply;
 import 'package:PiliPlus/grpc/reply.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/pages/common/publish/publish_route.dart';
@@ -53,9 +53,6 @@ class VideoReplyReplyController extends ReplyController
   @override
   void onInit() {
     super.onInit();
-    final cacheSortType = Pref.reply2SortType;
-    sortType.value = cacheSortType;
-    mode = cacheSortType == .time ? Mode.MAIN_LIST_TIME : Mode.MAIN_LIST_HOT;
     queryData();
   }
 
@@ -79,13 +76,19 @@ class VideoReplyReplyController extends ReplyController
       if (isRefresh && !hasRoot) {
         firstFloor.value ??= data.root;
       }
-      if (id != null) {
-        setIndexById(Int64(id!), data.root.replies);
-        id = null;
-      }
     }
 
     return false;
+  }
+
+  @override
+  void handleListResponse(List<ReplyInfo> dataList) {
+    super.handleListResponse(dataList);
+    // 必须在本地点赞排序完成后再计算定位下标，否则会跳到错误评论。
+    if (id case final targetId?) {
+      setIndexById(Int64(targetId), dataList);
+      id = null;
+    }
   }
 
   bool setIndexById(Int64 id64, [List<ReplyInfo>? replies]) {
@@ -147,12 +150,7 @@ class VideoReplyReplyController extends ReplyController
   }
 
   @override
-  void onReply(
-    ReplyInfo? replyItem, {
-    int? oid,
-    int? replyType,
-    int? index,
-  }) {
+  void onReply(ReplyInfo? replyItem, {int? oid, int? replyType, int? index}) {
     assert(replyItem != null && index != null);
 
     final (bool inputDisable, String? hint) = replyHint;

@@ -35,9 +35,10 @@ abstract final class Update {
         return;
       }
       final data = res.data[0];
+      final isCurrentRelease = data['tag_name'] == Constants.releaseTag;
       final int latest =
           DateTime.parse(data['created_at']).millisecondsSinceEpoch ~/ 1000;
-      if (BuildConfig.buildTime >= latest) {
+      if (isCurrentRelease || BuildConfig.buildTime >= latest) {
         if (!isAuto) {
           SmartDialog.showToast('已是最新版本');
         }
@@ -120,24 +121,30 @@ abstract final class Update {
     SmartDialog.dismiss();
     try {
       void download(String plat) {
-        if (data['assets'].isNotEmpty) {
-          for (Map<String, dynamic> i in data['assets']) {
-            final String name = i['name'];
-            if (name.contains(plat) &&
-                (ext == null || ext.isEmpty ? true : name.endsWith(ext))) {
-              PageUtils.launchURL(i['browser_download_url']);
-              return;
-            }
-          }
-          throw UnsupportedError('platform not found: $plat');
+        final assets = data['assets'];
+        if (assets is! List || assets.isEmpty) {
+          throw UnsupportedError('release has no assets');
         }
+        for (final asset in assets.whereType<Map>()) {
+          final name = '${asset['name']}';
+          if (name.contains(plat) &&
+              (ext == null || ext.isEmpty ? true : name.endsWith(ext))) {
+            PageUtils.launchURL('${asset['browser_download_url']}');
+            return;
+          }
+        }
+        throw UnsupportedError('platform not found: $plat');
       }
 
       if (Platform.isAndroid) {
         // 获取设备信息
         AndroidDeviceInfo androidInfo = await DeviceInfoPlugin().androidInfo;
         // [arm64-v8a]
-        download(androidInfo.supportedAbis.first);
+        try {
+          download(androidInfo.supportedAbis.first);
+        } on UnsupportedError {
+          download('universal');
+        }
       } else {
         download(Platform.operatingSystem);
       }

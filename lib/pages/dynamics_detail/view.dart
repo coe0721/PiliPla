@@ -8,6 +8,7 @@ import 'package:PiliPlus/common/widgets/flutter/text_field/controller.dart';
 import 'package:PiliPlus/common/widgets/gesture/horizontal_drag_gesture_recognizer.dart';
 import 'package:PiliPlus/common/widgets/pair.dart';
 import 'package:PiliPlus/common/widgets/refresh_indicator.dart';
+import 'package:PiliPlus/common/widgets/reply_like_sort_button.dart';
 import 'package:PiliPlus/common/widgets/scaffold/mini_scaffold.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/scroll_behavior.dart'
@@ -121,10 +122,7 @@ class _DynamicDetailPageState
           padding: EdgeInsets.only(left: padding.left, right: padding.right),
           child: _buildBody(),
         ),
-        fab: SlideTransition(
-          position: fabAnimation,
-          child: _buildBottom(),
-        ),
+        fab: SlideTransition(position: fabAnimation, child: _buildBottom()),
       ),
     );
   }
@@ -161,10 +159,7 @@ class _DynamicDetailPageState
                   start: buffer.length,
                   end: buffer.length + Style.placeHolder.length,
                 ),
-                emote: Emote(
-                  url: e.emoji!.url!,
-                  width: 22,
-                ),
+                emote: Emote(url: e.emoji!.url!, width: 22),
               ),
             );
             buffer.write(Style.placeHolder);
@@ -196,10 +191,7 @@ class _DynamicDetailPageState
               range: range,
               id: e.rid,
             ),
-            _ => RichTextItem(
-              text: e.origText!,
-              range: range,
-            ),
+            _ => RichTextItem(text: e.origText!, range: range),
           };
           items.add(item);
           buffer.write(e.origText!);
@@ -223,9 +215,7 @@ class _DynamicDetailPageState
     } else {
       final text = desc?.text ?? opus?.summary?.text;
       if (text != null && text.isNotEmpty) {
-        items = [
-          RichTextItem.fromStart(text),
-        ];
+        items = [RichTextItem.fromStart(text)];
       }
     }
     ReplyOptionType? replyOption;
@@ -242,24 +232,18 @@ class _DynamicDetailPageState
       topic: topic,
       replyOption: replyOption ?? .allow,
       isPrivate: item.modules.moduleAuthor?.badgeText != null,
-      editConfig: (
-        dynId: item.idStr,
-        repostDynId: item.orig?.idStr,
-      ),
+      editConfig: (dynId: item.idStr, repostDynId: item.orig?.idStr),
       onSuccess: () {
-        Future.delayed(
-          const Duration(milliseconds: 500),
-          () async {
-            if (!mounted) return;
-            final res = await DynamicsHttp.dynamicDetail(id: item.idStr);
-            if (res case Success(:final response)) {
-              if (mounted) {
-                controller.dynItem = response;
-                setState(() {});
-              }
+        Future.delayed(const Duration(milliseconds: 500), () async {
+          if (!mounted) return;
+          final res = await DynamicsHttp.dynamicDetail(id: item.idStr);
+          if (res case Success(:final response)) {
+            if (mounted) {
+              controller.dynItem = response;
+              setState(() {});
             }
-          },
-        );
+          }
+        });
       },
     );
   }
@@ -267,25 +251,23 @@ class _DynamicDetailPageState
   PreferredSizeWidget _buildAppBar() => AppBar(
     title: Padding(
       padding: const EdgeInsets.only(right: 12),
-      child: Obx(
-        () {
-          final showTitle = controller.showTitle.value;
-          return AnimatedOpacity(
-            opacity: showTitle ? 1 : 0,
-            duration: const Duration(milliseconds: 300),
-            child: IgnorePointer(
-              ignoring: !showTitle,
-              child: AuthorPanel(
-                item: controller.dynItem,
-                isDetail: true,
-                onSetPubSetting: controller.onSetPubSetting,
-                onEdit: _onEdit,
-                onSetReplySubject: controller.onSetReplySubject,
-              ),
+      child: Obx(() {
+        final showTitle = controller.showTitle.value;
+        return AnimatedOpacity(
+          opacity: showTitle ? 1 : 0,
+          duration: const Duration(milliseconds: 300),
+          child: IgnorePointer(
+            ignoring: !showTitle,
+            child: AuthorPanel(
+              item: controller.dynItem,
+              isDetail: true,
+              onSetPubSetting: controller.onSetPubSetting,
+              onEdit: _onEdit,
+              onSetReplySubject: controller.onSetReplySubject,
             ),
-          );
-        },
-      ),
+          ),
+        );
+      }),
     ),
     actions: isPortrait
         ? null
@@ -641,29 +623,21 @@ class _DynamicDetailPageState
 
   @override
   Widget buildReplyHeader([bool isPortrait = true]) {
-    final secondary = theme.colorScheme.secondary;
     final child = Padding(
       padding: const .fromLTRB(12, 2.5, 6, 2.5),
-      child: Obx(
-        () {
-          final sortType = controller.sortType.value;
-          return Row(
-            mainAxisAlignment: .spaceBetween,
-            children: [
-              Text(sortType.desc),
-              TextButton.icon(
-                style: Style.buttonStyle,
-                onPressed: controller.queryBySort,
-                icon: Icon(Icons.sort, size: 16, color: secondary),
-                label: Text(
-                  sortType.descShort,
-                  style: TextStyle(fontSize: 13, color: secondary),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+      child: Obx(() {
+        final sortType = controller.sortType.value;
+        return Row(
+          mainAxisAlignment: .spaceBetween,
+          children: [
+            Text(controller.sortByLikes.value ? '点赞排序' : sortType.desc),
+            ReplyLikeSortButton(
+              controller: controller,
+              colorScheme: theme.colorScheme,
+            ),
+          ],
+        );
+      }),
     );
     return SliverFloatingHeaderWidget(
       backgroundColor: theme.colorScheme.surface,

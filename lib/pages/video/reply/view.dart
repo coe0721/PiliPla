@@ -1,8 +1,8 @@
 import 'package:PiliPlus/common/skeleton/video_reply.dart';
 import 'package:PiliPlus/common/sliver_single_child_delegate.dart';
-import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/flutter/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/reply_like_sort_button.dart';
 import 'package:PiliPlus/common/widgets/scaffold/mini_scaffold.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/sliver/sliver_floating_header.dart';
@@ -92,24 +92,14 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
                       mainAxisAlignment: .spaceBetween,
                       children: [
                         Text(
-                          sortType.desc,
+                          _videoReplyController.sortByLikes.value
+                              ? '点赞排序'
+                              : sortType.desc,
                           style: const TextStyle(fontSize: 13),
                         ),
-                        TextButton.icon(
-                          style: Style.buttonStyle,
-                          onPressed: _videoReplyController.queryBySort,
-                          icon: Icon(
-                            Icons.sort,
-                            size: 16,
-                            color: colorScheme.secondary,
-                          ),
-                          label: Text(
-                            sortType.descShort,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: colorScheme.secondary,
-                            ),
-                          ),
+                        ReplyLikeSortButton(
+                          controller: _videoReplyController,
+                          colorScheme: colorScheme,
                         ),
                       ],
                     );

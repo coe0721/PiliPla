@@ -17,7 +17,6 @@ import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/audio_normalization.dart';
 import 'package:PiliPlus/models/common/dynamic/dynamics_type.dart';
 import 'package:PiliPlus/models/common/member/tab_type.dart';
-import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
 import 'package:PiliPlus/models/common/sponsor_block/skip_type.dart';
 import 'package:PiliPlus/models/common/super_resolution_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart'
@@ -391,10 +390,7 @@ List<SettingsModel> get extraSettings => [
   if (Platform.isAndroid)
     const SwitchModel(
       title: '使用「哔哩发评反诈」检查评论',
-      leading: Icon(
-        FontAwesomeIcons.b,
-        size: 22,
-      ),
+      leading: Icon(FontAwesomeIcons.b, size: 22),
       setKey: SettingBoxKey.biliSendCommAntifraud,
       defaultVal: false,
     ),
@@ -564,24 +560,6 @@ List<SettingsModel> get extraSettings => [
     onTap: _showReplyDelayDialog,
   ),
   PopupModel(
-    title: '评论展示',
-    leading: const Icon(Icons.whatshot_outlined),
-    value: () => Pref.replySortType,
-    items: ReplySortType.values.take(2),
-    onSelected: (value, setState) => GStorage.setting
-        .put(SettingBoxKey.replySortType, value.index)
-        .whenComplete(setState),
-  ),
-  PopupModel(
-    title: '楼中楼评论展示',
-    leading: const Icon(Icons.subdirectory_arrow_right_outlined),
-    value: () => Pref.reply2SortType,
-    items: ReplySortType.values.take(2),
-    onSelected: (value, setState) => GStorage.setting
-        .put(SettingBoxKey.reply2SortType, value.index)
-        .whenComplete(setState),
-  ),
-  PopupModel(
     title: '动态展示',
     leading: const Icon(Icons.dynamic_feed_rounded),
     value: () => Pref.defaultDynamicType,
@@ -698,10 +676,7 @@ Future<void> audioNormalization(
             spacing: 16,
             children: [
               const Text('等同于 --lavfi-complex="[aid1] 参数 [ao]"'),
-              TextField(
-                autofocus: true,
-                onChanged: (value) => param = value,
-              ),
+              TextField(autofocus: true, onChanged: (value) => param = value),
             ],
           ),
           actions: [
@@ -1000,10 +975,7 @@ Future<void> _showSuperResolutionDialog(
     ),
   );
   if (res != null) {
-    await GStorage.setting.put(
-      SettingBoxKey.superResolutionType,
-      res.index,
-    );
+    await GStorage.setting.put(SettingBoxKey.superResolutionType, res.index);
     setState();
   }
 }

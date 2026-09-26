@@ -13,6 +13,7 @@ import 'package:PiliPlus/models/common/member/tab_type.dart';
 import 'package:PiliPlus/models/common/msg/msg_unread_type.dart';
 import 'package:PiliPlus/models/common/nav_bar_config.dart';
 import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
+import 'package:PiliPlus/models/common/search/search_filter_mode.dart';
 import 'package:PiliPlus/models/common/sponsor_block/segment_type.dart';
 import 'package:PiliPlus/models/common/sponsor_block/skip_type.dart';
 import 'package:PiliPlus/models/common/super_chat_type.dart';
@@ -126,10 +127,8 @@ abstract final class Pref {
     }
     return SegmentType.values
         .map(
-          (item) => Pair(
-            first: item,
-            second: SkipType.values[list[item.index]],
-          ),
+          (item) =>
+              Pair(first: item, second: SkipType.values[list[item.index]]),
         )
         .toList();
   }
@@ -139,13 +138,11 @@ abstract final class Pref {
     if (list == null || list.length != SegmentType.values.length) {
       return SegmentType.values.map((i) => i.color).toList();
     }
-    return SegmentType.values.map(
-      (item) {
-        final String e = list[item.index];
-        final color = e.isNotEmpty ? int.tryParse('FF$e', radix: 16) : null;
-        return color != null ? Color(color) : item.color;
-      },
-    ).toList();
+    return SegmentType.values.map((item) {
+      final String e = list[item.index];
+      final color = e.isNotEmpty ? int.tryParse('FF$e', radix: 16) : null;
+      return color != null ? Color(color) : item.color;
+    }).toList();
   }
 
   static bool get feedBackEnable =>
@@ -321,9 +318,8 @@ abstract final class Pref {
   static String get blockUserID {
     String? blockUserID = _setting.get(SettingBoxKey.blockUserID);
     if (blockUserID == null || blockUserID.isEmpty) {
-      blockUserID = Digest(
-        List.generate(16, (_) => Utils.random.nextInt(256)),
-      ).toString();
+      blockUserID = Digest(List.generate(16, (_) => Utils.random.nextInt(256)))
+          .toString();
       _setting.put(SettingBoxKey.blockUserID, blockUserID);
     }
     return blockUserID;
@@ -488,6 +484,35 @@ abstract final class Pref {
 
   static bool get searchSuggestion =>
       _setting.get(SettingBoxKey.searchSuggestion, defaultValue: true);
+
+  static SearchFilterMode get searchFilterMode =>
+      SearchFilterMode.values[_setting.get(
+        SettingBoxKey.searchFilterMode,
+        defaultValue: SearchFilterMode.dim.index,
+      )];
+
+  static bool get searchFilterEnabled => _setting.get(
+    SettingBoxKey.searchFilterEnabled,
+    defaultValue: searchFilterMode != SearchFilterMode.off,
+  );
+
+  static int get searchFilterMinPlay =>
+      _setting.get(SettingBoxKey.searchFilterMinPlay, defaultValue: 500);
+
+  static int get searchFilterMinLikePermille =>
+      _setting.get(SettingBoxKey.searchFilterMinLikePermille, defaultValue: 5);
+
+  static double get searchDimOpacity =>
+      _setting.get(SettingBoxKey.searchDimOpacity, defaultValue: 0.3);
+
+  static bool get replyDimEnabled =>
+      _setting.get(SettingBoxKey.replyDimEnabled, defaultValue: true);
+
+  static int get replyDimMaxLikes =>
+      _setting.get(SettingBoxKey.replyDimMaxLikes, defaultValue: 0);
+
+  static double get replyDimOpacity =>
+      _setting.get(SettingBoxKey.replyDimOpacity, defaultValue: 0.3);
 
   static bool get showDecorate =>
       _setting.get(SettingBoxKey.showDecorate, defaultValue: true);
@@ -746,6 +771,9 @@ abstract final class Pref {
         SettingBoxKey.replySortType,
         defaultValue: ReplySortType.hot.index,
       )];
+
+  static bool get replySortByLikes =>
+      _setting.get(SettingBoxKey.replySortByLikes, defaultValue: true);
 
   static ReplySortType get reply2SortType =>
       ReplySortType.values[_setting.get(
