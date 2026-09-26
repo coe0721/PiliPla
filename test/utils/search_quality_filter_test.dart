@@ -186,6 +186,39 @@ void main() {
     expect(result.shouldDim(SearchFilterMode.dim), isFalse);
   });
 
+  test('三个查询片段可以分别由标题和标签覆盖', () {
+    final result = assess(
+      keyword: '原神薇斯纳剧情',
+      title: '薇斯纳主线剧情解析',
+      tags: '原神,角色,主线',
+    );
+
+    expect(result.relevance, SearchRelevance.related);
+    expect(result.shouldDim(SearchFilterMode.dim), isFalse);
+  });
+
+  test('跨字段覆盖时允许一个三字片段错一字', () {
+    final result = assess(
+      keyword: '原神薇丝纳剧情',
+      title: '薇斯纳主线剧情解析',
+      tags: '原神,角色,主线',
+    );
+
+    expect(result.relevance, SearchRelevance.related);
+    expect(result.shouldDim(SearchFilterMode.dim), isFalse);
+  });
+
+  test('跨字段覆盖缺少中间角色名时仍淡化', () {
+    final result = assess(
+      keyword: '原神薇斯纳剧情',
+      title: '主线剧情解析',
+      tags: '原神,角色,主线',
+    );
+
+    expect(result.relevance, SearchRelevance.uncertain);
+    expect(result.shouldDim(SearchFilterMode.dim), isTrue);
+  });
+
   test('简介完整命中搜索词时正常显示', () {
     final result = assess(
       keyword: '原神剧情',

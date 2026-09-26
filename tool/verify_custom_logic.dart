@@ -74,6 +74,14 @@ void main() {
   );
   check(typo.relevance == SearchRelevance.related, '三字角色名应容许中间字写错');
 
+  final crossField = assess(
+    keyword: '原神薇斯纳剧情',
+    title: '薇斯纳主线剧情解析',
+    tags: '原神,角色,主线',
+  );
+  check(crossField.relevance == SearchRelevance.related, '标题与标签片段应可共同覆盖查询词');
+  check(!crossField.shouldDim(SearchFilterMode.dim), '完整跨字段覆盖不应淡化');
+
   final firstBatch = [
     (id: 'first-high', likes: 20),
     (id: 'first-low', likes: 1),

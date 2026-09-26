@@ -7,11 +7,6 @@ abstract final class SearchQualityEngine {
   static final RegExp _separator = RegExp(
     r'''[\s\u3000,，。.!！?？、|/\\:：;；_\-—·•~～`'"“”‘’()（）\[\]【】{}<>《》]+''',
   );
-  static final RegExp _fanwork = RegExp(
-    r'二创|同人|手书|剪辑|混剪|配音|仿妆|绘画|动画|鬼畜|mmd|mad|cosplay|cos',
-    caseSensitive: false,
-  );
-
   static SearchQualityAssessment evaluate({
     required String keyword,
     required String title,
@@ -35,37 +30,30 @@ abstract final class SearchQualityEngine {
     final titleMatch = _match(title, query, allowFuzzy: true);
     final tagMatch = _match(tags, query, allowFuzzy: true);
     final descMatch = _match(description, query, allowFuzzy: false);
-    final titleHit = titleMatch != _MatchStrength.none;
-    final tagHit = tagMatch != _MatchStrength.none;
-    final descHit = descMatch != _MatchStrength.none;
-    final evidenceCount = [
-      titleHit,
-      tagHit,
-      descHit,
-    ].where((value) => value).length;
+    final matches = [titleMatch, tagMatch, descMatch];
+    final hasDirectMatch = matches.any(
+      (match) =>
+          match != _MatchStrength.none && match != _MatchStrength.partial,
+    );
+    final hasPartialMatch = matches.any(
+      (match) => match == _MatchStrength.partial,
+    );
+    final coveredByFragments = _coveredByFieldFragments(
+      query,
+      [title, tags, description],
+    );
 
-    var score = 0;
-    // 搜索结果本身已经经过 B 站召回。这里优先避免误伤：标题或标签只要
-    // 有完整、近距离或一次容错命中，就足以视为相关，不再要求标签和简介
-    // 必须重复出现同一关键词。
-    if (titleHit) {
-      score += titleMatch == _MatchStrength.partial ? 2 : 5;
-    }
-    if (tagHit) {
-      score += tagMatch == _MatchStrength.partial ? 3 : 6;
-    }
-    if (descHit) {
-      score += descMatch == _MatchStrength.partial ? 1 : 5;
-    }
-    if (evidenceCount >= 2) score += 2;
-
-    final combined = '$title ${tags ?? ''} ${description ?? ''}';
-    if (evidenceCount > 0 && _fanwork.hasMatch(combined)) score += 1;
-
-    final relevance = switch (score) {
-      >= 5 => SearchRelevance.related,
-      >= 2 => SearchRelevance.uncertain,
-      _ => SearchRelevance.unrelated,
+    // 相关性的判断只分三档，不再叠加来源权重：任一字段直接命中，或者
+    // 标题、标签、简介中的若干片段合起来覆盖完整查询词，都正常显示。
+    final relevance = hasDirectMatch || coveredByFragments
+        ? SearchRelevance.related
+        : hasPartialMatch
+        ? SearchRelevance.uncertain
+        : SearchRelevance.unrelated;
+    final score = switch (relevance) {
+      SearchRelevance.related => 5,
+      SearchRelevance.uncertain => 2,
+      SearchRelevance.unrelated => 0,
     };
 
     final reasons = <String>[];
@@ -136,27 +124,67 @@ abstract final class SearchQualityEngine {
       return _MatchStrength.fuzzy;
     }
 
-    // 长查询常由多个词组成，标题或标签只出现其中一段仍可能是有效结果，
-    // 例如搜索“原神深渊”而标题只写角色名、标签只写“原神”。这种情况
-    // 只作为弱证据保留，不会被误判成强相关。
-    if (query.length >= 4 && _hasMeaningfulFragment(normalized, query)) {
+    // 只命中长查询中的一小段时仅作为弱证据；是否完整覆盖
+    // 查询词由 _coveredByFieldFragments 统一判断。
+    if (query.length >= 4 && _hasQueryFragment(normalized, query)) {
       return _MatchStrength.partial;
     }
     return _MatchStrength.none;
   }
 
-  static bool _hasMeaningfulFragment(String text, String query) {
-    final fragmentLength = query.length >= 6 ? 3 : 2;
-    for (
-      var start = 0;
-      start + fragmentLength <= query.length;
-      start += fragmentLength
-    ) {
-      if (text.contains(query.substring(start, start + fragmentLength))) {
+  static bool _hasQueryFragment(String text, String query) {
+    for (var start = 0; start + 2 <= query.length; start++) {
+      if (text.contains(query.substring(start, start + 2))) {
         return true;
       }
     }
     return false;
+  }
+
+  /// 判断完整查询词能否由标题、标签、简介中的连续片段共同覆盖。
+  ///
+  /// 每段至少两个字，并且最多允许一个三字以上片段出现一次输入错误。
+  /// 例如“原神薇斯纳剧情”可以由标签“原神”和标题中的“薇斯纳”、
+  /// “剧情”共同覆盖。查询通常很短；限制为 24 字可避免极端输入拖慢列表。
+  static bool _coveredByFieldFragments(
+    String query,
+    List<String?> rawFields,
+  ) {
+    if (query.length < 4 || query.length > 24) return false;
+    final fields = rawFields
+        .whereType<String>()
+        .map(_normalize)
+        .where((field) => field.isNotEmpty)
+        .toList(growable: false);
+    if (fields.isEmpty) return false;
+
+    final reachable = List.generate(
+      query.length + 1,
+      (_) => List<bool>.filled(2, false),
+    );
+    reachable[0][0] = true;
+
+    for (var start = 0; start < query.length; start++) {
+      for (var editsUsed = 0; editsUsed <= 1; editsUsed++) {
+        if (!reachable[start][editsUsed]) continue;
+        for (var end = start + 2; end <= query.length; end++) {
+          final fragment = query.substring(start, end);
+          if (fields.any((field) => field.contains(fragment))) {
+            reachable[end][editsUsed] = true;
+            continue;
+          }
+          if (editsUsed == 0 &&
+              fragment.length >= 3 &&
+              fragment.length <= 12 &&
+              fields.any(
+                (field) => _containsWithinOneEdit(field, fragment),
+              )) {
+            reachable[end][1] = true;
+          }
+        }
+      }
+    }
+    return reachable[query.length][0] || reachable[query.length][1];
   }
 
   static bool _orderedNear(String text, String query) {
